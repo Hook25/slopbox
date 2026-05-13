@@ -4,6 +4,7 @@ import subprocess
 import textwrap
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 OPENAI_ENDPOINT = os.environ.get(
     "OPENAI_ENDPOINT",
@@ -113,7 +114,7 @@ def run_prompt(manifests, job_dct):
 
 def query_openai_endpoint(prompt_text: str) -> str:
     print(f"Sending: {prompt_text}")
-    payload_data = {
+    payload_data: dict[str, Any] = {
         "messages": [{"role": "user", "content": prompt_text}],
         "temperature": 0,
     }
@@ -129,9 +130,7 @@ def query_openai_endpoint(prompt_text: str) -> str:
         result = json.loads(resp.read())
 
     if "error" in result:
-        raise SystemExit(
-            f"API returned an error: {result['error']}"
-        )
+        raise SystemExit(f"API returned an error: {result['error']}")
     if "choices" not in result:
         raise SystemExit(
             f"Unexpected API response (missing 'choices' key): {result}"

@@ -1,5 +1,6 @@
 import json
 import os
+import urllib.error
 import urllib.request
 from typing import Any
 
@@ -24,8 +25,14 @@ def query_openai_endpoint(prompt_text: str) -> str:
         data=payload,
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req) as resp:
-        result = json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.URLError as exc:
+        raise SystemExit(
+            f"Could not connect to LLM endpoint "
+            f"{OPENAI_ENDPOINT}: {exc.reason}"
+        ) from exc
 
     if "error" in result:
         raise SystemExit(f"API returned an error: {result['error']}")

@@ -1,7 +1,22 @@
 import json
 import sys
+from collections.abc import Iterable
 
 from launchpadlib.launchpad import Launchpad
+
+ALL_STATUSES: list[str] = [
+    "New",
+    "Incomplete",
+    "Opinion",
+    "Invalid",
+    "Won't Fix",
+    "Expired",
+    "Confirmed",
+    "Triaged",
+    "In Progress",
+    "Fix Committed",
+    "Fix Released",
+]
 
 
 def _get_launchpad():
@@ -30,13 +45,34 @@ def _find_milestone_url(project, name: str) -> str | None:
     return None
 
 
-def fetch_bugs(project_name: str, milestones: list[str] | None = None):
+def _search_tasks(
+    project,
+    *,
+    statuses: Iterable[str] | None = None,
+    milestone: str | None = None,
+):
+    """Call project.searchTasks() with the full status list by default."""
+    kwargs = {}
+    if milestone is not None:
+        kwargs["milestone"] = milestone
+    if statuses is not None:
+        kwargs["status"] = list(statuses)
+    else:
+        kwargs["status"] = ALL_STATUSES
+    return project.searchTasks(**kwargs)
+
+
+def fetch_bugs(
+    project_name: str,
+    milestones: list[str] | None = None,
+    statuses: list[str] | None = None,
+):
     """Fetch bugs for a Launchpad project and yield bug dicts."""
     launchpad = _get_launchpad()
     project = launchpad.projects[project_name]
 
     if not milestones:
-        for task in project.searchTasks():
+        for task in _search_tasks(project, statuses=statuses):
             yield _task_to_dict(task)
         return
 
@@ -49,7 +85,9 @@ def fetch_bugs(project_name: str, milestones: list[str] | None = None):
                 file=sys.stderr,
             )
             continue
-        for task in project.searchTasks(milestone=ms_url):
+        for task in _search_tasks(
+            project, statuses=statuses, milestone=ms_url
+        ):
             bug_id = task.bug.id
             if bug_id not in seen_ids:
                 seen_ids.add(bug_id)
@@ -74,6 +112,15 @@ def register_parser(subparsers):
             "If omitted, all bugs are returned."
         ),
     )
+    parser.add_argument(
+        "--statuses",
+        type=str,
+        default=None,
+        help=(
+            "Comma-separated list of bug statuses to include. "
+            "If omitted, all known statuses are returned."
+        ),
+    )
     parser.set_defaults(func=run)
     return parser
 
@@ -82,5 +129,14 @@ def run(args):
     milestones = None
     if args.milestones:
         milestones = [m.strip() for m in args.milestones.split(",")]
-    bugs = list(fetch_bugs(args.launchpad_project, milestones=milestones))
+    statuses = None
+    if args.statuses:
+        statuses = [s.strip() for s in args.statuses.split(",")]
+    bugs = list(
+        fetch_bugs(
+            args.launchpad_project,
+            milestones=milestones,
+            statuses=statuses,
+        )
+    )
     print(json.dumps(bugs))

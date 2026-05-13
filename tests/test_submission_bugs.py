@@ -118,7 +118,20 @@ class TestFetchBugs:
         assert len(results) == 1
         assert results[0]["id"] == 100
         mock_project.searchTasks.assert_called_once_with(
-            milestone=mock_ms.self_link
+            milestone=mock_ms.self_link,
+            status=[
+                "New",
+                "Incomplete",
+                "Opinion",
+                "Invalid",
+                "Won't Fix",
+                "Expired",
+                "Confirmed",
+                "Triaged",
+                "In Progress",
+                "Fix Committed",
+                "Fix Released",
+            ],
         )
 
     @patch("slopbox.submission.bugs.Launchpad")
@@ -184,13 +197,14 @@ class TestFetchBugs:
 class TestRun:
     """Tests for the run() entry point."""
 
-    def _make_args(self, launchpad_project, milestones=None):
+    def _make_args(self, launchpad_project, milestones=None, statuses=None):
         """Build a namespace mimicking argparse output."""
         from argparse import Namespace
 
         return Namespace(
             launchpad_project=launchpad_project,
             milestones=milestones,
+            statuses=statuses,
         )
 
     @patch("slopbox.submission.bugs.fetch_bugs")
@@ -244,5 +258,21 @@ class TestRun:
         run(args)
 
         mock_fetch.assert_called_once_with(
-            "testproj", milestones=["ms1", "ms2"]
+            "testproj",
+            milestones=["ms1", "ms2"],
+            statuses=None,
+        )
+
+    @patch("slopbox.submission.bugs.fetch_bugs")
+    def test_statuses_passed_through(self, mock_fetch):
+        """The --statuses value is split and passed to fetch_bugs."""
+        mock_fetch.return_value = []
+
+        args = self._make_args("testproj", statuses="Fix Released, Invalid")
+        run(args)
+
+        mock_fetch.assert_called_once_with(
+            "testproj",
+            milestones=None,
+            statuses=["Fix Released", "Invalid"],
         )

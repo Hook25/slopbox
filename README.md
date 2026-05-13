@@ -47,4 +47,5 @@ slopbox manifest assign ethernet/detect \
     --job-json jobs.json
 ```
 
-By default the command talks to an OpenAI-compatible endpoint at `http://localhost:1234/v1/chat/completions`. You can override this by setting the `OPENAI_ENDPOINT` environment variable.
+By default the command talks to an OpenAI-compatible endpoint at `http://localhost:1234/v1/chat/completions`. You can override this by setting the `OPENAI_ENDPOINT` environment variable.  
+The default model sent in requests is `gpt-3.5-turbo`. If your server requires a specific model name (e.g. `Gemma-4-E4B-it-GGUF`), set the `OPENAI_MODEL` environment variable.

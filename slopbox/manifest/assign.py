@@ -9,6 +9,8 @@ OPENAI_ENDPOINT = os.environ.get(
     "OPENAI_ENDPOINT",
     "http://localhost:1234/v1/chat/completions",
 )
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
 
 prompt = textwrap.dedent("""\
     ### SYSTEM
@@ -114,6 +116,7 @@ def query_openai_endpoint(prompt_text: str) -> str:
     print(f"Sending: {prompt_text}")
     payload = json.dumps(
         {
+            "model": OPENAI_MODEL,
             "messages": [{"role": "user", "content": prompt_text}],
             "temperature": 0,
         }
@@ -125,6 +128,15 @@ def query_openai_endpoint(prompt_text: str) -> str:
     )
     with urllib.request.urlopen(req) as resp:
         result = json.loads(resp.read())
+
+    if "error" in result:
+        raise SystemExit(
+            f"API returned an error: {result['error']}"
+        )
+    if "choices" not in result:
+        raise SystemExit(
+            f"Unexpected API response (missing 'choices' key): {result}"
+        )
     return result["choices"][0]["message"]["content"]
 
 

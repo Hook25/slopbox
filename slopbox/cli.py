@@ -1,6 +1,6 @@
 import argparse
 
-from slopbox import manifest
+from slopbox import manifest, submission
 
 
 def main():
@@ -12,6 +12,7 @@ def main():
     subparsers.required = True
 
     manifest.register_parser(subparsers)
+    submission.register_parser(subparsers)
 
     args = parser.parse_args()
     args.func(args)

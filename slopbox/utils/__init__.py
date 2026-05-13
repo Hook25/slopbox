@@ -11,11 +11,11 @@ OPENAI_ENDPOINT = os.environ.get(
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL")
 
 
-def query_openai_endpoint(prompt_text: str) -> str:
-    print(f"Sending: {prompt_text}")
+def query_openai_endpoint(prompt_text: str, *, thinking: bool = True) -> str:
     payload_data: dict[str, Any] = {
         "messages": [{"role": "user", "content": prompt_text}],
         "temperature": 0,
+        "thinking": thinking,
     }
     if OPENAI_MODEL:
         payload_data["model"] = OPENAI_MODEL

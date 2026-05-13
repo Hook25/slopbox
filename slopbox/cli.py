@@ -1,6 +1,6 @@
 import argparse
 
-from slopbox import manifest, submission
+from slopbox import job, manifest, submission
 
 
 def main():
@@ -11,6 +11,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
     subparsers.required = True
 
+    job.register_parser(subparsers)
     manifest.register_parser(subparsers)
     submission.register_parser(subparsers)
 

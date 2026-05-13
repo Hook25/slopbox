@@ -1,4 +1,4 @@
-from slopbox.submission import results
+from slopbox.submission import bugs, results
 
 
 def register_parser(subparsers):
@@ -9,5 +9,6 @@ def register_parser(subparsers):
     )
     sub = parser.add_subparsers(dest="submission_command")
     sub.required = True
+    bugs.register_parser(sub)
     results.register_parser(sub)
     return parser

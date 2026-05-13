@@ -16,6 +16,7 @@ Use `--help` to see available commands and options:
 slopbox --help
 slopbox manifest --help
 slopbox manifest assign --help
+slopbox manifest generate --help
 slopbox submission --help
 slopbox submission bugs --help
 slopbox submission results --help
@@ -50,8 +51,42 @@ slopbox manifest assign ethernet/detect \
     --job-json jobs.json
 ```
 
-By default the command talks to an OpenAI-compatible endpoint at `http://localhost:1234/v1/chat/completions`. You can override this by setting the `OPENAI_ENDPOINT` environment variable.
-If your server requires a specific `model` name in the request body, set the `OPENAI_MODEL` environment variable. When unset, the request is sent without a `model` key.
+### `manifest generate`
+
+The `manifest generate` subcommand analyzes a job and determines whether it requires hardware/firmware features (manifests). It returns a JSON object mapping feature names to descriptions.
+
+```bash
+slopbox manifest generate <job_id> [options]
+```
+
+**Arguments:**
+
+- `job_id` – The ID of the job to evaluate (required).
+
+**Options:**
+
+- `--job-json <path>` – Path to a JSON file containing job definitions. If omitted, jobs are fetched from `checkbox-cli`.
+
+**Example:**
+
+```bash
+# Use checkbox-cli data source
+slopbox manifest generate wifi6/detect
+
+# Use a local JSON file
+slopbox manifest generate wifi6/detect --job-json jobs.json
+```
+
+**Output:**
+
+- If features are detected:
+  ```json
+  {
+    "has_wifi_adapter": "Machine has a wifi adapter",
+    "has_wifi6": "Machine supports wifi 6"
+  }
+  ```
+- If no features are needed: `No feature needed for this job.`
 
 ### `submission results`
 
@@ -74,7 +109,6 @@ slopbox submission results <submission_id>
 ```bash
 C3_ACCESS_TOKEN="<your-token>" slopbox submission results 486444
 ```
-
 ### `submission bugs`
 
 The `submission bugs` subcommand fetches bugs from a Launchpad project.
@@ -104,3 +138,8 @@ slopbox submission bugs my-project --milestones alpha,beta
 **Authentication:**
 
 This command requires you to be authenticated to Launchpad. If you haven't authenticated before, run `lp-shell` once to cache your OAuth credentials, then try again.
+
+## Configuration
+
+By default commands talk to an OpenAI-compatible endpoint at `http://localhost:1234/v1/chat/completions`. You can override this by setting the `OPENAI_ENDPOINT` environment variable.
+If your server requires a specific `model` name in the request body, set the `OPENAI_MODEL` environment variable. When unset, the request is sent without a `model` key.

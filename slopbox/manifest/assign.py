@@ -1,4 +1,5 @@
 import json
+import subprocess
 import textwrap
 import urllib.request
 from pathlib import Path
@@ -128,23 +129,49 @@ def load_json(path: Path) -> dict:
         return json.load(f)
 
 
+def checkbox_cli_list(expression: str) -> list:
+    result = subprocess.run(
+        ["checkbox-cli", "list", "--attrs", "--format", "json", expression],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(result.stdout)
+
+
 def register_parser(subparsers):
     parser = subparsers.add_parser(
         "assign",
         help="Classify tests against manifest tags using an LLM.",
     )
+    parser.add_argument("job_id", help="Job ID to classify.")
     parser.add_argument(
-        "manifest_json", type=Path, help="Path to the manifest JSON file."
+        "--manifest-json",
+        type=Path,
+        default=None,
+        help="Path to the manifest JSON file",
     )
-    parser.add_argument("job_json", type=Path, help="JSON Job dump")
-    parser.add_argument("job_id")
+    parser.add_argument(
+        "--job-json",
+        type=Path,
+        default=None,
+        help="Path to the job JSON dump",
+    )
     parser.set_defaults(func=run)
     return parser
 
 
 def run(args):
-    manifests = load_json(args.manifest_json)
-    jobs = load_json(args.job_json)
+    if args.manifest_json is not None:
+        manifests = load_json(args.manifest_json)
+    else:
+        manifests = checkbox_cli_list("manifest entry")
+
+    if args.job_json is not None:
+        jobs = load_json(args.job_json)
+    else:
+        jobs = checkbox_cli_list("all-jobs")
+
     job_id = args.job_id
     try:
         job = next(

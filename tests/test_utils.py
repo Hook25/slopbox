@@ -36,3 +36,13 @@ class TestQueryOpenaiEndpointErrors:
 
         with pytest.raises(SystemExit, match="missing 'choices' key"):
             query_openai_endpoint("hello")
+
+    @patch("slopbox.utils.urllib.request.urlopen")
+    def test_connection_error_raises_system_exit(self, mock_urlopen):
+        """When connection is refused, a clear SystemExit is raised."""
+        from urllib.error import URLError
+
+        mock_urlopen.side_effect = URLError("Connection refused")
+
+        with pytest.raises(SystemExit, match="Could not connect"):
+            query_openai_endpoint("hello")

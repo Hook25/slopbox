@@ -41,30 +41,46 @@ networkmanager, nm, wpasupplicant
     ### KEYWORDS:
     """)
 
-VERIFY_PROMPT = textwrap.dedent("""\
+NARROW_KEYWORDS_PROMPT = textwrap.dedent("""\
     ### SYSTEM
-    You are a strict relevance judge for test jobs.
-    Your task is to determine whether the provided job is
-    SPECIFICALLY and DIRECTLY about what the user is searching for.
+    You are a keyword extraction engine for narrowing search
+    results. The user query has both a general context and a
+    specific focus. You must output keywords ONLY for the
+    specific focus, ignoring the general context entirely.
 
     ### CONSTRAINTS
-    - Output ONLY "yes" or "no".
+    - Output ONLY a comma-separated list of lowercase keywords.
+    - Include abbreviations, acronyms, and alternate spellings.
+    - IGNORE the general/broad context of the query. Assume all
+      results already match the broad topic.
+    - Only output keywords for the SPECIFIC sub-topic or detail
+      the user is asking about.
+    - Do NOT include generic QA/testing terms.
     - Do NOT provide any preamble, explanation,
       or closing remarks.
-    - Answer "yes" ONLY if the job's primary purpose is to test
-      exactly what the query describes.
-    - Answer "no" if the job merely mentions the topic in passing,
-      uses it as a dependency, or is only tangentially related.
-    - When in doubt, answer "no".
+
+    ### EXAMPLE
+    Query: "wifi ac scanning tests"
+    Narrow keywords: ac 802.11ac
+    -> Note: general topic is wifi, don't include it
+
+    Query: "bluetooth audio A2DP codec tests"
+    Narrow keywords: a2dp
 
     ### QUERY
     {query}
 
-    ### JOB
-    {job}
-
-    ### MATCHES (yes/no):
+    ### NARROW KEYWORDS:
     """)
+
+
+def extract_narrow_keywords(query):
+    """Ask the LLM to generate narrow/specific keywords from the query."""
+    response = query_openai_endpoint(
+        NARROW_KEYWORDS_PROMPT.format(query=query),
+        thinking=False,
+    )
+    return [k.strip().lower() for k in response.split(",") if k.strip()]
 
 
 def extract_keywords(query):
@@ -98,6 +114,16 @@ def job_tokens(job):
     return set(splitter.split(blob)) - {""}
 
 
+def keyword_matches(kw, tokens):
+    """Check if a keyword matches the token set.
+
+    If the keyword contains a space, all parts must be present.
+    """
+    if " " in kw:
+        return all(part in tokens for part in kw.split())
+    return kw in tokens
+
+
 def keyword_filter(jobs, keywords):
     """Pre-filter jobs, ordered by number of matching keywords.
 
@@ -106,7 +132,7 @@ def keyword_filter(jobs, keywords):
     scored = []
     for job in jobs:
         tokens = job_tokens(job)
-        score = sum(1 for kw in keywords if kw in tokens)
+        score = sum(1 for kw in keywords if keyword_matches(kw, tokens))
         if score > 0:
             scored.append((score, job))
     if not scored:
@@ -124,44 +150,18 @@ def keyword_filter(jobs, keywords):
     return [job for _, job in scored]
 
 
-def full_job_repr(job):
-    """Create a detailed representation of a job for verification."""
-    keep_keys = {
-        "id",
-        "template_id",
-        "partial_id",
-        "summary",
-        "purpose",
-        "description",
-        "command",
-        "steps",
-        "verification",
-        "category",
-    }
-    items = ((k.removeprefix("_"), v) for k, v in job.items() if v)
-    pruned = {k: v for k, v in items if k in keep_keys}
-    return json.dumps(pruned, indent=2)
-
-
-def verify_job(job, query):
-    """Ask the LLM to verify a single job against the query."""
-    job_text = full_job_repr(job)
-    response = query_openai_endpoint(
-        VERIFY_PROMPT.format(query=query, job=job_text)
-    )
-    return response.strip().lower() == "yes"
-
-
 def search_jobs(jobs, query, *, precise=False):
     """Search over jobs.
 
-    Pass 1: LLM generates keywords, then string-match pre-filter.
-    Pass 2 (precise only): Verify each candidate one-by-one with
-    full details via LLM.
+    Pass 1: LLM generates broad keywords, then token-match filter.
+    Pass 2 (precise only): LLM generates narrow keywords specific
+    to the sub-topic, then further filters by those.
     """
     # Pass 1: keyword extraction + string filtering
+    print("Extracting keywords...")
     keywords = extract_keywords(query)
     print(f"Keywords: {', '.join(keywords)}")
+    print(f"Filtering {len(jobs)} jobs...")
     candidates = keyword_filter(jobs, keywords)
     print(f"Pre-filter matched {len(candidates)} jobs.")
 
@@ -171,14 +171,15 @@ def search_jobs(jobs, query, *, precise=False):
     if not precise:
         return candidates
 
-    # Pass 2: one-by-one verification
-    verified = []
-    for job in candidates:
-        if verify_job(job, query):
-            print(job.get("template_id") or job["id"])
-            verified.append(job)
+    # Pass 2: narrow keyword filtering
+    print("Extracting narrow keywords...")
+    narrow_kws = extract_narrow_keywords(query)
+    print(f"Narrow keywords: {', '.join(narrow_kws)}")
+    print(f"Narrowing {len(candidates)} candidates...")
+    narrowed = keyword_filter(candidates, narrow_kws)
+    print(f"Narrow filter matched {len(narrowed)} jobs.")
 
-    return verified
+    return narrowed if narrowed else candidates
 
 
 def load_json(path: Path) -> list:

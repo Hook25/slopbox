@@ -17,6 +17,7 @@ slopbox --help
 slopbox manifest --help
 slopbox manifest assign --help
 slopbox manifest generate --help
+slopbox submission --help
 ```
 
 ### `manifest assign`
@@ -85,6 +86,29 @@ slopbox manifest generate wifi6/detect --job-json jobs.json
   ```
 - If no features are needed: `No feature needed for this job.`
 
+### `submission results`
+
+The `submission results` subcommand fetches test results from the C3 API.
+
+```bash
+slopbox submission results <submission_id>
+```
+
+**Arguments:**
+
+- `submission_id` – The submission ID to query (required).
+
+**Environment variables:**
+
+- `C3_ACCESS_TOKEN` – Required. Bearer token used to authenticate with the C3 API.
+
+**Example:**
+
+```bash
+C3_ACCESS_TOKEN="<your-token>" slopbox submission results 486444
+```
+
 ## Configuration
 
 By default commands talk to an OpenAI-compatible endpoint at `http://localhost:1234/v1/chat/completions`. You can override this by setting the `OPENAI_ENDPOINT` environment variable.
+If your server requires a specific `model` name in the request body, set the `OPENAI_MODEL` environment variable. When unset, the request is sent without a `model` key.

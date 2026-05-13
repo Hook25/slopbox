@@ -23,7 +23,7 @@ JOBS = [JOB]
 class TestRunPrompt:
     """Tests for run_prompt which drives the LLM classification loop."""
 
-    @patch("slopbox.manifest.assign.query_lm_studio")
+    @patch("slopbox.manifest.assign.query_openai_endpoint")
     def test_valid_tags_returned(self, mock_query):
         """When the model returns valid manifest ids, they are returned."""
         mock_query.return_value = "has_ethernet_adapter"
@@ -33,7 +33,7 @@ class TestRunPrompt:
         assert result == ["has_ethernet_adapter"]
         assert mock_query.call_count == 1
 
-    @patch("slopbox.manifest.assign.query_lm_studio")
+    @patch("slopbox.manifest.assign.query_openai_endpoint")
     def test_hallucinated_manifest_triggers_retry(self, mock_query):
         """When the model returns an invalid tag, it retries."""
         mock_query.side_effect = [
@@ -46,7 +46,7 @@ class TestRunPrompt:
         assert result == ["has_ethernet_adapter"]
         assert mock_query.call_count == 2
 
-    @patch("slopbox.manifest.assign.query_lm_studio")
+    @patch("slopbox.manifest.assign.query_openai_endpoint")
     def test_hallucination_exhausts_retries(self, mock_query):
         """When the model always hallucinates, we raise after 5 attempts."""
         mock_query.return_value = "totally_made_up_tag"

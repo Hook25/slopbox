@@ -1,10 +1,14 @@
 import json
+import os
 import subprocess
 import textwrap
 import urllib.request
 from pathlib import Path
 
-LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
+OPENAI_ENDPOINT = os.environ.get(
+    "OPENAI_ENDPOINT",
+    "http://localhost:1234/v1/chat/completions",
+)
 
 prompt = textwrap.dedent("""\
     ### SYSTEM
@@ -95,7 +99,7 @@ def run_prompt(manifests, job_dct):
     job_dct = prune_job(job_dct)
     test = json.dumps(job_dct)
     for _i in range(5):
-        llm_out = query_lm_studio(
+        llm_out = query_openai_endpoint(
             prompt.format(test=test, tags_bullet=manifests_bullet)
         )
         tags = [x.strip() for x in llm_out.split(",")]
@@ -106,7 +110,7 @@ def run_prompt(manifests, job_dct):
     raise ValueError("LLM unable to do it")
 
 
-def query_lm_studio(prompt_text: str) -> str:
+def query_openai_endpoint(prompt_text: str) -> str:
     print(f"Sending: {prompt_text}")
     payload = json.dumps(
         {
@@ -115,7 +119,7 @@ def query_lm_studio(prompt_text: str) -> str:
         }
     ).encode()
     req = urllib.request.Request(
-        LM_STUDIO_URL,
+        OPENAI_ENDPOINT,
         data=payload,
         headers={"Content-Type": "application/json"},
     )

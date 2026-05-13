@@ -18,6 +18,8 @@ slopbox manifest --help
 slopbox manifest assign --help
 slopbox manifest generate --help
 slopbox submission --help
+slopbox submission bugs --help
+slopbox submission results --help
 ```
 
 ### `manifest assign`
@@ -107,6 +109,35 @@ slopbox submission results <submission_id>
 ```bash
 C3_ACCESS_TOKEN="<your-token>" slopbox submission results 486444
 ```
+### `submission bugs`
+
+The `submission bugs` subcommand fetches bugs from a Launchpad project.
+
+```bash
+slopbox submission bugs <launchpad_project>
+```
+
+**Arguments:**
+
+- `launchpad_project` – Launchpad project name to query (required).
+
+**Options:**
+
+- `--milestones <names>` – Comma-separated list of milestone names to filter by. If omitted, all bugs are returned.
+
+**Example:**
+
+```bash
+# All bugs in a project
+slopbox submission bugs checkbox
+
+# Bugs filtered by milestone
+slopbox submission bugs my-project --milestones alpha,beta
+```
+
+**Authentication:**
+
+This command requires you to be authenticated to Launchpad. If you haven't authenticated before, run `lp-shell` once to cache your OAuth credentials, then try again.
 
 ## Configuration
 

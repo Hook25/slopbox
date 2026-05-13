@@ -47,3 +47,9 @@ any issues before finishing.
 
 - When adding new functionality that would benefit from automated checks
   (e.g. tests), **propose adding or updating CI** to cover it.
+
+## Documentation
+
+- **Always update `README.md`** when adding, removing, or changing
+  commands, options, or user-facing behaviour. The README must stay in
+  sync with the actual CLI interface.
